@@ -1,7 +1,7 @@
 const storeKey = "manifestation-reminder-v1";
 const affirmationBaseline = 1000;
 const appVersion = "V2.1";
-const appUrl = "https://917sus-bit.github.io/mytri/?v=2.1";
+const appUrl = "https://917sus-bit.github.io/mytri/index.html";
 const surveyUrl = "https://zcn58ot3c768.feishu.cn/share/base/form/shrcnUWuibkRyfK97YNnbRAOaGA";
 
 const defaults = {
