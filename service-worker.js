@@ -1,4 +1,4 @@
-const cacheName = "manifestation-reminder-v22";
+const cacheName = "manifestation-reminder-v23";
 const assets = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.json", "./icon.svg"];
 
 self.addEventListener("install", (event) => {
