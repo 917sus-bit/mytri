@@ -63,7 +63,7 @@ menu {
 
 .view-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   padding: 5px;
   border: 1px solid rgba(31, 37, 33, 0.1);
@@ -122,6 +122,7 @@ h2 {
 .focus-panel,
 .progress-panel,
 .reminder-panel,
+.release-panel,
 .automation-panel,
 .compose-panel,
 .history-panel {
@@ -142,6 +143,10 @@ h2 {
 }
 
 .reminder-panel {
+  background: linear-gradient(135deg, var(--soft), var(--blue));
+}
+
+.release-panel {
   background: linear-gradient(135deg, var(--soft), var(--blue));
 }
 
@@ -546,6 +551,11 @@ input:focus {
   gap: 11px;
 }
 
+.release-page-grid {
+  display: grid;
+  gap: 10px;
+}
+
 .belief-split {
   display: grid;
   gap: 10px;
@@ -575,7 +585,16 @@ input:focus {
   background: rgba(240, 217, 212, 0.56);
 }
 
-.reverse-reminder {
+.belief-module.release {
+  background: rgba(216, 229, 239, 0.62);
+}
+
+.belief-module.rumination {
+  background: rgba(217, 234, 223, 0.6);
+}
+
+.reverse-reminder,
+.release-flow {
   padding: 9px 10px;
   border: 1px dashed rgba(31, 37, 33, 0.16);
   border-radius: 8px;
@@ -589,6 +608,20 @@ input:focus {
 .reverse-reminder-stack {
   display: grid;
   gap: 8px;
+}
+
+.release-flow {
+  min-height: 78px;
+}
+
+.release-steps {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0 0 0 20px;
+  color: #384038;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 label {
@@ -641,6 +674,35 @@ label span {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.settings-card {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid rgba(31, 37, 33, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.settings-card strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+
+.settings-card p,
+.settings-card span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.settings-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .backup-actions {
@@ -721,6 +783,11 @@ label span {
   white-space: pre-wrap;
 }
 
+.automation-copy.lockscreen-copy {
+  min-height: 96px;
+  margin-top: 10px;
+}
+
 .automation-actions {
   display: flex;
   flex-wrap: wrap;
@@ -793,6 +860,10 @@ menu {
   }
 
   .belief-split {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .release-page-grid {
     grid-template-columns: 1fr 1fr;
   }
 

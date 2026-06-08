@@ -1,5 +1,8 @@
 const storeKey = "manifestation-reminder-v1";
 const affirmationBaseline = 1000;
+const appVersion = "V2.1";
+const appUrl = "https://917sus-bit.github.io/mytri/";
+const surveyUrl = "https://zcn58ot3c768.feishu.cn/share/base/form/shrcnUWuibkRyfK97YNnbRAOaGA";
 
 const defaults = {
   manifests: [],
@@ -10,13 +13,21 @@ let state = loadState();
 let activeManifestId = null;
 let pendingBeliefShift = null;
 let pendingSaveAfterWorryTest = false;
+let pendingReleaseShift = null;
+let pendingReleaseChoice = "";
+let pendingSaveAfterRelease = false;
+let pendingRuminationShift = null;
+let pendingRuminationChoice = "";
+let pendingSaveAfterRumination = false;
 
 const els = {
   todayLabel: document.querySelector("#todayLabel"),
   showProgress: document.querySelector("#showProgress"),
+  showRelease: document.querySelector("#showRelease"),
   showHistory: document.querySelector("#showHistory"),
   showAutomation: document.querySelector("#showAutomation"),
   progressView: document.querySelector("#progressView"),
+  releaseView: document.querySelector("#releaseView"),
   historyView: document.querySelector("#historyView"),
   automationView: document.querySelector("#automationView"),
   overallPercent: document.querySelector("#overallPercent"),
@@ -42,8 +53,26 @@ const els = {
   oppositeReminder: document.querySelector("#oppositeReminder"),
   testWorry: document.querySelector("#testWorry"),
   beliefShiftStatus: document.querySelector("#beliefShiftStatus"),
+  releaseTopicInput: document.querySelector("#releaseTopicInput"),
+  releaseBodyInput: document.querySelector("#releaseBodyInput"),
+  releasePrompt: document.querySelector("#releasePrompt"),
+  startRelease: document.querySelector("#startRelease"),
+  releaseStatus: document.querySelector("#releaseStatus"),
+  saveReleaseEntry: document.querySelector("#saveReleaseEntry"),
+  ruminationLoopInput: document.querySelector("#ruminationLoopInput"),
+  ruminationMeaningInput: document.querySelector("#ruminationMeaningInput"),
+  ruminationActionInput: document.querySelector("#ruminationActionInput"),
+  ruminationPrompt: document.querySelector("#ruminationPrompt"),
+  startRumination: document.querySelector("#startRumination"),
+  ruminationStatus: document.querySelector("#ruminationStatus"),
   worryTestDialog: document.querySelector("#worryTestDialog"),
   worryTestText: document.querySelector("#worryTestText"),
+  releaseDialog: document.querySelector("#releaseDialog"),
+  releaseGuideText: document.querySelector("#releaseGuideText"),
+  releaseChoiceInput: document.querySelector("#releaseChoiceInput"),
+  ruminationDialog: document.querySelector("#ruminationDialog"),
+  ruminationGuideText: document.querySelector("#ruminationGuideText"),
+  ruminationChoiceInput: document.querySelector("#ruminationChoiceInput"),
   cancelManifestDialog: document.querySelector("#cancelManifestDialog"),
   cancelManifestText: document.querySelector("#cancelManifestText"),
   saveEntry: document.querySelector("#saveEntry"),
@@ -57,7 +86,12 @@ const els = {
   trendSummary: document.querySelector("#trendSummary"),
   beliefTable: document.querySelector("#beliefTable"),
   automationPreview: document.querySelector("#automationPreview"),
+  lockscreenPreview: document.querySelector("#lockscreenPreview"),
   copyAutomation: document.querySelector("#copyAutomation"),
+  copyLockscreenText: document.querySelector("#copyLockscreenText"),
+  copySurveyLink: document.querySelector("#copySurveyLink"),
+  surveyLink: document.querySelector("#surveyLink"),
+  runLockscreenShortcut: document.querySelector("#runLockscreenShortcut"),
   copyAppLink: document.querySelector("#copyAppLink"),
   toast: document.querySelector("#toast")
 };
@@ -82,6 +116,8 @@ function init() {
   renderAutomation();
   bindEvents();
   updateReverseReminder();
+  updateReleasePrompt();
+  updateRuminationPrompt();
   setInterval(updateTodayLabel, 60000);
 
   if ("serviceWorker" in navigator) {
@@ -95,10 +131,13 @@ function updateTodayLabel() {
 
 function bindEvents() {
   els.showProgress.addEventListener("click", () => switchView("progress"));
+  els.showRelease.addEventListener("click", () => switchView("release"));
   els.showHistory.addEventListener("click", () => switchView("history"));
   els.showAutomation.addEventListener("click", () => switchView("automation"));
   els.copyAutomation.addEventListener("click", () => copyText(getAutomationText()));
-  els.copyAppLink.addEventListener("click", () => copyText(location.href));
+  els.copyLockscreenText.addEventListener("click", () => copyText(getLockscreenText()));
+  els.copySurveyLink.addEventListener("click", () => copyText(surveyUrl));
+  els.copyAppLink.addEventListener("click", () => copyText(appUrl));
   els.worryInput.addEventListener("input", () => {
     pendingBeliefShift = null;
     updateReverseReminder();
@@ -107,7 +146,34 @@ function bindEvents() {
     pendingBeliefShift = null;
     updateReverseReminder();
   });
+  els.releaseTopicInput.addEventListener("input", () => {
+    pendingReleaseShift = null;
+    pendingReleaseChoice = "";
+    updateReleasePrompt();
+  });
+  els.releaseBodyInput.addEventListener("input", () => {
+    pendingReleaseShift = null;
+    pendingReleaseChoice = "";
+    updateReleasePrompt();
+  });
+  els.ruminationLoopInput.addEventListener("input", () => {
+    pendingRuminationShift = null;
+    pendingRuminationChoice = "";
+    updateRuminationPrompt();
+  });
+  els.ruminationMeaningInput.addEventListener("input", () => {
+    pendingRuminationShift = null;
+    pendingRuminationChoice = "";
+    updateRuminationPrompt();
+  });
+  els.ruminationActionInput.addEventListener("input", () => {
+    pendingRuminationShift = null;
+    pendingRuminationChoice = "";
+    updateRuminationPrompt();
+  });
   els.testWorry.addEventListener("click", () => openWorryTest(false));
+  els.startRelease.addEventListener("click", () => openReleaseFlow(false));
+  els.startRumination.addEventListener("click", () => openRuminationFlow(false));
   els.worryTestDialog.addEventListener("close", () => {
     if (els.worryTestDialog.returnValue === "changed") {
       pendingBeliefShift = 1;
@@ -123,6 +189,42 @@ function bindEvents() {
       return;
     }
     pendingSaveAfterWorryTest = false;
+  });
+  els.releaseDialog.addEventListener("close", () => {
+    if (els.releaseDialog.returnValue === "released") {
+      pendingReleaseShift = 1;
+      pendingReleaseChoice = els.releaseChoiceInput.value.trim();
+      els.releaseStatus.textContent = "释放结果：松动了，信念 +1";
+    }
+    if (els.releaseDialog.returnValue === "holding") {
+      pendingReleaseShift = 0;
+      pendingReleaseChoice = els.releaseChoiceInput.value.trim();
+      els.releaseStatus.textContent = "释放结果：还在抓紧，保持 0";
+    }
+    if (pendingSaveAfterRelease && pendingReleaseShift !== null) {
+      pendingSaveAfterRelease = false;
+      saveEntry();
+      return;
+    }
+    pendingSaveAfterRelease = false;
+  });
+  els.ruminationDialog.addEventListener("close", () => {
+    if (els.ruminationDialog.returnValue === "settled") {
+      pendingRuminationShift = 1;
+      pendingRuminationChoice = els.ruminationChoiceInput.value.trim();
+      els.ruminationStatus.textContent = "反刍结果：回来了，信念 +1";
+    }
+    if (els.ruminationDialog.returnValue === "spinning") {
+      pendingRuminationShift = 0;
+      pendingRuminationChoice = els.ruminationChoiceInput.value.trim();
+      els.ruminationStatus.textContent = "反刍结果：还在循环，保持 0";
+    }
+    if (pendingSaveAfterRumination && pendingRuminationShift !== null) {
+      pendingSaveAfterRumination = false;
+      saveEntry();
+      return;
+    }
+    pendingSaveAfterRumination = false;
   });
   els.cancelManifestDialog.addEventListener("close", () => {
     if (els.cancelManifestDialog.returnValue !== "confirm") return;
@@ -161,6 +263,7 @@ function bindEvents() {
   });
 
   els.saveEntry.addEventListener("click", saveEntry);
+  els.saveReleaseEntry.addEventListener("click", saveEntry);
   els.exportData.addEventListener("click", exportBackup);
   els.importData.addEventListener("click", () => els.importFile.click());
   els.importFile.addEventListener("change", importBackup);
@@ -172,12 +275,15 @@ function bindEvents() {
 }
 
 function switchView(view) {
+  const isRelease = view === "release";
   const isHistory = view === "history";
   const isAutomation = view === "automation";
-  els.progressView.classList.toggle("active", !isHistory && !isAutomation);
+  els.progressView.classList.toggle("active", !isRelease && !isHistory && !isAutomation);
+  els.releaseView.classList.toggle("active", isRelease);
   els.historyView.classList.toggle("active", isHistory);
   els.automationView.classList.toggle("active", isAutomation);
-  els.showProgress.classList.toggle("active", !isHistory && !isAutomation);
+  els.showProgress.classList.toggle("active", !isRelease && !isHistory && !isAutomation);
+  els.showRelease.classList.toggle("active", isRelease);
   els.showHistory.classList.toggle("active", isHistory);
   els.showAutomation.classList.toggle("active", isAutomation);
   if (isHistory) renderEntries();
@@ -273,7 +379,10 @@ function renderManifests() {
 
 function renderAutomation() {
   if (!els.automationPreview) return;
+  els.surveyLink.href = surveyUrl;
   els.automationPreview.textContent = getAutomationText();
+  els.lockscreenPreview.textContent = getLockscreenText();
+  els.runLockscreenShortcut.href = getRunShortcutUrl(getLockscreenText());
 }
 
 function handleManifestAction(event) {
@@ -372,9 +481,9 @@ function getTodoText(item, score, affirmation) {
 async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
-    showToast("待办样式文字已复制");
+    showToast("内容已复制");
   } catch {
-    showToast("已生成待办样式文字");
+    showToast("内容已生成");
   }
 }
 
@@ -393,6 +502,14 @@ function renderEntries() {
       ${entry.oppositeBelief ? `<p>反面信念：${escapeHtml(entry.oppositeBelief)}</p>` : ""}
       ${entry.worryReminder ? `<p>担心提示：${escapeHtml(entry.worryReminder)}</p>` : ""}
       ${entry.oppositeReminder ? `<p>信念提示：${escapeHtml(entry.oppositeReminder)}</p>` : ""}
+      ${entry.releaseTopic ? `<p>释放：${escapeHtml(entry.releaseTopic)}</p>` : ""}
+      ${entry.releaseBody ? `<p>身体感受：${escapeHtml(entry.releaseBody)}</p>` : ""}
+      ${entry.releasePrompt ? `<p>释放提示：${escapeHtml(entry.releasePrompt)}</p>` : ""}
+      ${entry.releaseChoice ? `<p>新选择：${escapeHtml(entry.releaseChoice)}</p>` : ""}
+      ${entry.ruminationLoop ? `<p>反复念头：${escapeHtml(entry.ruminationLoop)}</p>` : ""}
+      ${entry.ruminationMeaning ? `<p>想证明：${escapeHtml(entry.ruminationMeaning)}</p>` : ""}
+      ${entry.ruminationPrompt ? `<p>反刍提示：${escapeHtml(entry.ruminationPrompt)}</p>` : ""}
+      ${entry.ruminationChoice ? `<p>回到现在：${escapeHtml(entry.ruminationChoice)}</p>` : ""}
       ${entry.reverseReminder ? `<p>旧反向提示：${escapeHtml(entry.reverseReminder)}</p>` : ""}
       ${Number.isFinite(entry.beliefShift) && entry.beliefShift !== 0 ? `<p>信念测试：${entry.beliefShift > 0 ? "+1" : "-1"}</p>` : ""}
     `;
@@ -465,10 +582,27 @@ function saveEntry() {
   const belief = els.beliefInput.value.trim();
   const worry = els.worryInput.value.trim();
   const oppositeBelief = els.oppositeBeliefInput.value.trim();
+  const releaseTopic = els.releaseTopicInput.value.trim();
+  const releaseBody = els.releaseBodyInput.value.trim();
+  const ruminationLoop = els.ruminationLoopInput.value.trim();
+  const ruminationMeaning = els.ruminationMeaningInput.value.trim();
+  const ruminationAction = els.ruminationActionInput.value.trim();
   const worryReminder = getWorryReminder(worry);
   const oppositeReminder = getOppositeReminder(oppositeBelief);
+  const releasePrompt = getReleasePrompt(releaseTopic, releaseBody);
+  const ruminationPrompt = getRuminationPrompt(ruminationLoop, ruminationMeaning, ruminationAction);
 
-  if (!gratitude && !belief && !worry && !oppositeBelief) {
+  if (
+    !gratitude &&
+    !belief &&
+    !worry &&
+    !oppositeBelief &&
+    !releaseTopic &&
+    !releaseBody &&
+    !ruminationLoop &&
+    !ruminationMeaning &&
+    !ruminationAction
+  ) {
     showToast("先写一点内容");
     return;
   }
@@ -479,7 +613,28 @@ function saveEntry() {
     return;
   }
 
-  const beliefShift = getBeliefShift(belief, worry, oppositeBelief);
+  if ((releaseTopic || releaseBody) && pendingReleaseShift === null) {
+    pendingSaveAfterRelease = true;
+    openReleaseFlow(true);
+    return;
+  }
+
+  if ((ruminationLoop || ruminationMeaning || ruminationAction) && pendingRuminationShift === null) {
+    pendingSaveAfterRumination = true;
+    openRuminationFlow(true);
+    return;
+  }
+
+  const beliefShift = getBeliefShift(
+    belief,
+    worry,
+    oppositeBelief,
+    releaseTopic,
+    releaseBody,
+    ruminationLoop,
+    ruminationMeaning,
+    ruminationAction
+  );
 
   state.entries.unshift({
     id: crypto.randomUUID(),
@@ -489,8 +644,26 @@ function saveEntry() {
     oppositeBelief,
     worryReminder,
     oppositeReminder,
+    releaseTopic,
+    releaseBody,
+    releasePrompt,
+    releaseChoice: pendingReleaseChoice,
+    ruminationLoop,
+    ruminationMeaning,
+    ruminationAction,
+    ruminationPrompt,
+    ruminationChoice: pendingRuminationChoice,
     beliefShift,
-    module: getEntryModuleFromFields(belief, worry, oppositeBelief),
+    module: getEntryModuleFromFields(
+      belief,
+      worry,
+      oppositeBelief,
+      releaseTopic,
+      releaseBody,
+      ruminationLoop,
+      ruminationMeaning,
+      ruminationAction
+    ),
     createdAt: Date.now()
   });
   state.entries = state.entries.slice(0, 30);
@@ -502,8 +675,19 @@ function saveEntry() {
   els.beliefInput.value = "";
   els.worryInput.value = "";
   els.oppositeBeliefInput.value = "";
+  els.releaseTopicInput.value = "";
+  els.releaseBodyInput.value = "";
+  els.ruminationLoopInput.value = "";
+  els.ruminationMeaningInput.value = "";
+  els.ruminationActionInput.value = "";
   pendingBeliefShift = null;
+  pendingReleaseShift = null;
+  pendingReleaseChoice = "";
+  pendingRuminationShift = null;
+  pendingRuminationChoice = "";
   updateReverseReminder();
+  updateReleasePrompt();
+  updateRuminationPrompt();
   persist(getEntryToast(beliefShift));
   renderManifests();
   renderEntries();
@@ -515,6 +699,22 @@ function updateReverseReminder() {
   els.worryReminder.textContent = getWorryReminder(worry) || "写下担心后生成担心提示";
   els.oppositeReminder.textContent = getOppositeReminder(oppositeBelief) || "写下反面信念后生成信念提示";
   els.beliefShiftStatus.textContent = "测试后决定 +1 或 -1";
+}
+
+function updateReleasePrompt() {
+  const releaseTopic = els.releaseTopicInput.value.trim();
+  const releaseBody = els.releaseBodyInput.value.trim();
+  els.releasePrompt.textContent = getReleasePrompt(releaseTopic, releaseBody) || "写下想释放的内容后生成四步提示";
+  els.releaseStatus.textContent = "松动后写入记录，信念 +1";
+}
+
+function updateRuminationPrompt() {
+  const ruminationLoop = els.ruminationLoopInput.value.trim();
+  const ruminationMeaning = els.ruminationMeaningInput.value.trim();
+  const ruminationAction = els.ruminationActionInput.value.trim();
+  els.ruminationPrompt.textContent =
+    getRuminationPrompt(ruminationLoop, ruminationMeaning, ruminationAction) || "写下反复念头后生成降噪提示";
+  els.ruminationStatus.textContent = "从脑内循环回到当下，松动后 +1";
 }
 
 function openWorryTest(fromSave) {
@@ -532,6 +732,35 @@ function openWorryTest(fromSave) {
   els.worryTestDialog.showModal();
 }
 
+function openReleaseFlow(fromSave) {
+  const releaseTopic = els.releaseTopicInput.value.trim();
+  const releaseBody = els.releaseBodyInput.value.trim();
+  const prompt = getReleasePrompt(releaseTopic, releaseBody);
+  if (!prompt) {
+    showToast("先写下想释放的内容");
+    return;
+  }
+  pendingSaveAfterRelease = fromSave;
+  els.releaseGuideText.textContent = prompt;
+  els.releaseChoiceInput.value = pendingReleaseChoice;
+  els.releaseDialog.showModal();
+}
+
+function openRuminationFlow(fromSave) {
+  const ruminationLoop = els.ruminationLoopInput.value.trim();
+  const ruminationMeaning = els.ruminationMeaningInput.value.trim();
+  const ruminationAction = els.ruminationActionInput.value.trim();
+  const prompt = getRuminationPrompt(ruminationLoop, ruminationMeaning, ruminationAction);
+  if (!prompt) {
+    showToast("先写下反复出现的念头");
+    return;
+  }
+  pendingSaveAfterRumination = fromSave;
+  els.ruminationGuideText.textContent = prompt;
+  els.ruminationChoiceInput.value = pendingRuminationChoice || ruminationAction;
+  els.ruminationDialog.showModal();
+}
+
 function getWorryReminder(worry) {
   if (worry) return `我不担心${worry}。`;
   return "";
@@ -542,15 +771,42 @@ function getOppositeReminder(oppositeBelief) {
   return "";
 }
 
-function getBeliefShift(belief, worry, oppositeBelief) {
-  if (worry || oppositeBelief) return pendingBeliefShift || -1;
-  if (belief) return 1;
-  return 0;
+function getReleasePrompt(releaseTopic, releaseBody) {
+  const target = releaseTopic || releaseBody;
+  if (!target) return "";
+  const bodyLine = releaseBody ? `我注意到身体里有：${releaseBody}。` : "我先回到身体，找到这个感觉。";
+  return `${bodyLine} 我允许「${target}」先在这里；我愿意放下想控制、证明或抓住它的需要；如果可以，就现在放下一点点。`;
+}
+
+function getRuminationPrompt(ruminationLoop, ruminationMeaning, ruminationAction) {
+  const target = ruminationLoop || ruminationMeaning || ruminationAction;
+  if (!target) return "";
+  const meaningLine = ruminationMeaning ? `它想让我相信：${ruminationMeaning}。` : "它想让我继续证明和确定。";
+  const actionLine = ruminationAction ? `我现在把注意力交还给：${ruminationAction}。` : "我现在把注意力交还给身体和下一件具体小事。";
+  return `我注意到念头在循环：「${target}」。${meaningLine} 这只是一个念头，不是命令；我允许它经过，但不继续喂它。${actionLine}`;
+}
+
+function getBeliefShift(
+  belief,
+  worry,
+  oppositeBelief,
+  releaseTopic,
+  releaseBody,
+  ruminationLoop,
+  ruminationMeaning,
+  ruminationAction
+) {
+  let shift = 0;
+  if (belief) shift += 1;
+  if (worry || oppositeBelief) shift += pendingBeliefShift ?? -1;
+  if (releaseTopic || releaseBody) shift += pendingReleaseShift ?? 0;
+  if (ruminationLoop || ruminationMeaning || ruminationAction) shift += pendingRuminationShift ?? 0;
+  return shift;
 }
 
 function getEntryToast(shift) {
-  if (shift > 0) return "已写入记录，信念 +1";
-  if (shift < 0) return "已写入记录，信念 -1";
+  if (shift > 0) return `已写入记录，信念 +${shift}`;
+  if (shift < 0) return `已写入记录，信念 ${shift}`;
   return "已写入记录";
 }
 
@@ -579,7 +835,7 @@ function renderBeliefTrend() {
         <span>${escapeHtml(formatShortDate(entry.createdAt))}</span>
         <span>${escapeHtml(getEntryModule(entry))}</span>
         <span>${escapeHtml(formatShift(entry.beliefShift))}</span>
-        <span>${escapeHtml(entry.belief || entry.worry || entry.oppositeBelief || "-")}</span>
+        <span>${escapeHtml(entry.ruminationLoop || entry.releaseTopic || entry.belief || entry.worry || entry.oppositeBelief || "-")}</span>
       </div>
     `).join("")}
   `;
@@ -618,12 +874,29 @@ function getTrendSvg(points) {
 
 function getEntryModule(entry) {
   if (entry.module) return entry.module;
+  if ((entry.releaseTopic || entry.releaseBody) && (entry.ruminationLoop || entry.ruminationMeaning || entry.ruminationAction)) {
+    return "释放 + 反刍";
+  }
+  if (entry.ruminationLoop || entry.ruminationMeaning || entry.ruminationAction) return "思维反刍";
+  if (entry.releaseTopic || entry.releaseBody) return "释放法";
   if (entry.belief) return "我相信";
   if (entry.worry || entry.oppositeBelief) return "我不相信";
   return "记录";
 }
 
-function getEntryModuleFromFields(belief, worry, oppositeBelief) {
+function getEntryModuleFromFields(
+  belief,
+  worry,
+  oppositeBelief,
+  releaseTopic,
+  releaseBody,
+  ruminationLoop,
+  ruminationMeaning,
+  ruminationAction
+) {
+  if ((releaseTopic || releaseBody) && (ruminationLoop || ruminationMeaning || ruminationAction)) return "释放 + 反刍";
+  if (ruminationLoop || ruminationMeaning || ruminationAction) return "思维反刍";
+  if (releaseTopic || releaseBody) return "释放法";
   if (worry || oppositeBelief) return "我不相信";
   if (belief) return "我相信";
   return "记录";
@@ -645,27 +918,70 @@ function getAutomationText() {
     const score = getManifestScore(item);
     return getTodoText(item, score, getAffirmation(item.text));
   });
+  const releaseLine = getReleaseAutomationLine();
+  const lockscreenText = getLockscreenText();
   return [
+    `显化Mytri ${appVersion}`,
     "快捷指令名称：显化Mytri",
     "",
-    "快捷指令动作清单：",
-    "1. 文本：粘贴下面的显化提醒文字。",
-    "2. 显示通知：使用上一步文本作为通知内容。",
-    "3. URL：粘贴下面的 App 链接。",
+    "V2.1 设置：",
+    "1. 自动化页新增问卷调查入口。",
+    "2. 锁屏弹窗、释放窗口、思维反刍测试后，请提交问卷反馈。",
+    `3. 问卷调查：${surveyUrl}`,
+    "",
+    "锁屏弹窗快捷指令：",
+    "1. 文本：粘贴下面的锁屏弹窗内容。",
+    "2. 显示通知：标题填“显化Mytri”，正文使用上一步文本。",
+    "3. URL：粘贴 GitHub App 链接。",
     "4. 打开 URL：打开上一步 URL。",
     "",
     "个人自动化设置：",
-    "1. 在快捷指令 App 里进入自动化。",
-    "2. 新建个人自动化，选择每天固定时间。",
-    "3. 添加操作：运行快捷指令。",
-    "4. 选择快捷指令：显化Mytri。",
-    "5. 关闭运行前询问，保存。",
+    "1. 点“打开自动化设定”。如果只打开快捷指令 App，就进入底部“自动化”。",
+    "2. 新建个人自动化，选择每天固定时间或睡眠/起床触发器。",
+    "3. 选择“立即运行”，关闭运行前询问。",
+    "4. 添加操作：运行快捷指令。",
+    "5. 选择快捷指令：显化Mytri。",
     "",
     "显化提醒文字：",
     ...lines,
     "",
-    `App 链接：${location.href}`
+    "释放法提示：",
+    releaseLine,
+    "",
+    "锁屏弹窗内容：",
+    lockscreenText,
+    "",
+    `App 链接：${appUrl}`,
+    `问卷调查：${surveyUrl}`
   ].join("\n");
+}
+
+function getReleaseAutomationLine() {
+  const latestRelease = state.entries.find((entry) => entry.releasePrompt || entry.ruminationPrompt);
+  if (latestRelease) return [latestRelease.releasePrompt, latestRelease.ruminationPrompt].filter(Boolean).join(" ");
+  return "我允许今天出现的情绪先在这里；我愿意放下想控制、证明或抓住它的需要；现在放下一点点。";
+}
+
+function getLockscreenText() {
+  const items = state.manifests.length ? state.manifests : [createManifest("我的显化目标")];
+  const first = items[0];
+  const score = getManifestScore(first);
+  const releaseLine = getReleaseAutomationLine();
+  return [
+    `显化Mytri ${appVersion} ${score.total}%`,
+    getAffirmation(first.text),
+    releaseLine,
+    "点开后记录一次相信、释放或反刍。"
+  ].join("\n");
+}
+
+function getRunShortcutUrl(text) {
+  const params = new URLSearchParams({
+    name: "显化Mytri",
+    input: "text",
+    text
+  });
+  return `shortcuts://run-shortcut?${params.toString()}`;
 }
 
 function formatEntryDate(value) {

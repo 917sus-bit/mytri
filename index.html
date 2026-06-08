@@ -23,6 +23,7 @@
 
       <nav class="view-tabs" aria-label="页面切换">
         <button class="tab-button active" id="showProgress" type="button">进度</button>
+        <button class="tab-button" id="showRelease" type="button">释放</button>
         <button class="tab-button" id="showHistory" type="button">历史</button>
         <button class="tab-button" id="showAutomation" type="button">自动化</button>
       </nav>
@@ -90,6 +91,55 @@
         </section>
       </div>
 
+      <div class="view-panel" id="releaseView">
+        <section class="release-panel" aria-labelledby="releaseTitle">
+        <div class="section-head">
+          <h2 id="releaseTitle">释放窗口</h2>
+          <button class="text-button" id="saveReleaseEntry" type="button">写入释放</button>
+        </div>
+        <div class="release-page-grid">
+          <div class="belief-module release">
+            <h3>释放法</h3>
+            <label>
+              <span>我现在想释放</span>
+              <input id="releaseTopicInput" maxlength="100" autocomplete="off" placeholder="情绪、执念、担心或想控制的事" />
+            </label>
+            <label>
+              <span>身体感觉</span>
+              <input id="releaseBodyInput" maxlength="100" autocomplete="off" placeholder="胸口紧、胃沉、肩膀硬..." />
+            </label>
+            <label>
+              <span>释放提示</span>
+              <div class="release-flow" id="releasePrompt">写下想释放的内容后生成四步提示</div>
+            </label>
+            <button class="text-button" id="startRelease" type="button">开始释放</button>
+            <p class="formula-note" id="releaseStatus">松动后写入记录，信念 +1</p>
+          </div>
+          <div class="belief-module rumination">
+            <h3>思维反刍</h3>
+            <label>
+              <span>反复出现的念头</span>
+              <input id="ruminationLoopInput" maxlength="120" autocomplete="off" placeholder="我一直在想..." />
+            </label>
+            <label>
+              <span>它想让我证明</span>
+              <input id="ruminationMeaningInput" maxlength="120" autocomplete="off" placeholder="我必须马上解决、证明、确定..." />
+            </label>
+            <label>
+              <span>现在交还给</span>
+              <input id="ruminationActionInput" maxlength="100" autocomplete="off" placeholder="身体、呼吸、下一件具体小事" />
+            </label>
+            <label>
+              <span>反刍提示</span>
+              <div class="release-flow" id="ruminationPrompt">写下反复念头后生成降噪提示</div>
+            </label>
+            <button class="text-button" id="startRumination" type="button">反刍降噪</button>
+            <p class="formula-note" id="ruminationStatus">从脑内循环回到当下，松动后 +1</p>
+          </div>
+        </div>
+        </section>
+      </div>
+
       <div class="view-panel" id="historyView">
         <section class="history-panel" aria-labelledby="historyTitle">
         <div class="section-head">
@@ -123,16 +173,31 @@
       <div class="view-panel" id="automationView">
         <section class="automation-panel" aria-labelledby="automationTitle">
         <div class="section-head">
-          <h2 id="automationTitle">自动化提醒</h2>
+          <h2 id="automationTitle">自动化提醒 V2.1</h2>
           <button class="text-button" id="copyAutomation" type="button">复制流程</button>
         </div>
+        <div class="settings-card">
+          <div>
+            <strong>V2.1 设置</strong>
+            <p>自动化、锁屏弹窗和释放窗口测试反馈统一收集到这份问卷。</p>
+          </div>
+          <div class="settings-actions">
+            <a class="text-button" id="surveyLink" href="https://zcn58ot3c768.feishu.cn/share/base/form/shrcnUWuibkRyfK97YNnbRAOaGA" target="_blank" rel="noreferrer">打开问卷</a>
+            <button class="text-button subtle" id="copySurveyLink" type="button">复制问卷链接</button>
+          </div>
+          <span>版本：V2.1 · 用于 GitHub 上传后的自动化测试</span>
+        </div>
         <div class="automation-copy" id="automationPreview"></div>
+        <div class="automation-copy lockscreen-copy" id="lockscreenPreview"></div>
         <div class="automation-actions">
           <a class="text-button" href="shortcuts://create-shortcut">一键创建快捷指令</a>
+          <a class="text-button" id="openAutomationSetup" href="shortcuts://create-automation">打开自动化设定</a>
           <a class="text-button" href="shortcuts://open-shortcut?name=%E6%98%BE%E5%8C%96Mytri">打开显化Mytri捷径</a>
+          <a class="text-button" id="runLockscreenShortcut" href="shortcuts://run-shortcut?name=%E6%98%BE%E5%8C%96Mytri">运行锁屏弹窗</a>
+          <button class="text-button" id="copyLockscreenText" type="button">复制锁屏内容</button>
           <button class="text-button subtle" id="copyAppLink" type="button">复制 App 链接</button>
         </div>
-        <p class="formula-note">点击创建后，在快捷指令里按复制的流程添加操作；个人自动化仍需要在 iPhone 上确认启用。</p>
+        <p class="formula-note">如果 iOS 只打开快捷指令 App，请进入自动化页新建个人自动化；系统仍需要在 iPhone 上确认触发器和通知权限。</p>
         </section>
       </div>
     </main>
@@ -198,6 +263,58 @@
         <menu>
           <button class="text-button subtle" value="unchanged" type="submit">没有改变 -1</button>
           <button class="text-button" value="changed" type="submit">有改变 +1</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="releaseDialog">
+      <form method="dialog" class="dialog-card">
+        <div class="section-head">
+          <h2>释放法</h2>
+          <button class="icon-button small" value="cancel" type="submit" aria-label="关闭">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <p class="dialog-text" id="releaseGuideText"></p>
+        <ol class="release-steps">
+          <li>我能不能允许这个感觉先在这里？</li>
+          <li>我能不能放下想控制、证明或抓住它的需要？</li>
+          <li>我愿不愿意现在放下这一点点？</li>
+          <li>什么时候？现在。</li>
+        </ol>
+        <label>
+          <span>松动后，我选择</span>
+          <input id="releaseChoiceInput" maxlength="100" autocomplete="off" placeholder="例如：先回到身体，允许它自然发生" />
+        </label>
+        <menu>
+          <button class="text-button subtle" value="holding" type="submit">还在抓紧 0</button>
+          <button class="text-button" value="released" type="submit">松动了 +1</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="ruminationDialog">
+      <form method="dialog" class="dialog-card">
+        <div class="section-head">
+          <h2>思维反刍</h2>
+          <button class="icon-button small" value="cancel" type="submit" aria-label="关闭">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <p class="dialog-text" id="ruminationGuideText"></p>
+        <ol class="release-steps">
+          <li>这是一个正在循环的念头，不是命令。</li>
+          <li>我允许它出现，但不继续喂它证据。</li>
+          <li>我放下现在就要想明白的需要。</li>
+          <li>我把注意力交还给身体和下一步。</li>
+        </ol>
+        <label>
+          <span>回到现在，我选择</span>
+          <input id="ruminationChoiceInput" maxlength="100" autocomplete="off" placeholder="例如：喝水、深呼吸、先做眼前一件事" />
+        </label>
+        <menu>
+          <button class="text-button subtle" value="spinning" type="submit">还在循环 0</button>
+          <button class="text-button" value="settled" type="submit">回来了 +1</button>
         </menu>
       </form>
     </dialog>

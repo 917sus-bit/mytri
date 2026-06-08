@@ -1,7 +1,7 @@
 {
   "name": "显化Mytri",
   "short_name": "显化Mytri",
-  "description": "固定提醒、显化文字和每日记录。",
+  "description": "V2.1 自动化提醒、锁屏弹窗、释放窗口和每日记录。",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f7f3ea",
