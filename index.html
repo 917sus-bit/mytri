@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f7f3ea" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="显化Mytri" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>显化Mytri</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="todayLabel">今天</p>
+          <h1>显化Mytri</h1>
+        </div>
+      </header>
+
+      <nav class="view-tabs" aria-label="页面切换">
+        <button class="tab-button active" id="showProgress" type="button">进度</button>
+        <button class="tab-button" id="showHistory" type="button">历史</button>
+        <button class="tab-button" id="showAutomation" type="button">自动化</button>
+      </nav>
+
+      <div class="view-panel active" id="progressView">
+        <section class="progress-panel" aria-labelledby="progressTitle">
+        <div class="section-head">
+          <h2 id="progressTitle">显化进度</h2>
+        </div>
+        <div class="progress-summary">
+          <strong><span id="overallPercent">0</span>%</strong>
+          <span id="overallLabel">添加一件想显化的事情</span>
+        </div>
+        <div class="progress-track" aria-hidden="true">
+          <div class="progress-fill" id="overallFill"></div>
+        </div>
+        <div class="manifest-add">
+          <input id="manifestText" maxlength="72" placeholder="写下一件想显化的事情" />
+          <button class="text-button" id="addManifest" type="button">添加</button>
+        </div>
+        <div class="manifest-list" id="manifestList"></div>
+        <p class="formula-note">每件事公式：相信度 40% + 测试确认 25% + A练习分 20% + 时间推进 15%。A练习分按 1000 次和当前相信度折算。</p>
+        </section>
+
+        <section class="compose-panel" aria-labelledby="journalTitle">
+        <div class="section-head">
+          <h2 id="journalTitle">记录</h2>
+          <button class="text-button" id="saveEntry" type="button">写入</button>
+        </div>
+        <div class="entry-grid">
+          <div class="belief-split wide">
+            <div class="belief-module positive">
+              <h3>我相信 +</h3>
+              <label>
+                <span>我感谢</span>
+                <input id="gratitudeInput" maxlength="80" autocomplete="off" />
+              </label>
+              <label>
+                <span>我选择相信</span>
+                <input id="beliefInput" maxlength="80" autocomplete="off" placeholder="我相信..." />
+              </label>
+            </div>
+            <div class="belief-module negative">
+              <h3>我不相信</h3>
+              <label>
+                <span>我担心的事情</span>
+                <input id="worryInput" maxlength="100" autocomplete="off" />
+              </label>
+              <label>
+                <span>反面信念</span>
+                <input id="oppositeBeliefInput" maxlength="100" autocomplete="off" />
+              </label>
+              <label>
+                <span>反向提示</span>
+                <div class="reverse-reminder-stack">
+                  <div class="reverse-reminder" id="worryReminder">写下担心后生成担心提示</div>
+                  <div class="reverse-reminder" id="oppositeReminder">写下反面信念后生成信念提示</div>
+                </div>
+              </label>
+              <button class="text-button" id="testWorry" type="button">测试反面信念</button>
+              <p class="formula-note" id="beliefShiftStatus">测试后决定 +1 或 -1</p>
+            </div>
+          </div>
+        </div>
+        </section>
+      </div>
+
+      <div class="view-panel" id="historyView">
+        <section class="history-panel" aria-labelledby="historyTitle">
+        <div class="section-head">
+          <h2 id="historyTitle">历史</h2>
+          <button class="text-button subtle" id="clearEntries" type="button">清空</button>
+        </div>
+        <div class="backup-card">
+          <div>
+            <strong>数据备份</strong>
+            <p>自动保存在本机；导出后可以存到 iCloud Drive，换手机再导入恢复。</p>
+          </div>
+          <div class="backup-actions">
+            <button class="text-button" id="exportData" type="button">导出到文件</button>
+            <button class="text-button subtle" id="importData" type="button">导入备份</button>
+            <input id="importFile" type="file" accept="application/json,.json" hidden />
+          </div>
+          <span id="backupStatus">本机已自动保存</span>
+        </div>
+        <div class="trend-card">
+          <div class="section-head compact">
+            <h2>信念趋势</h2>
+            <span id="trendSummary">等待记录</span>
+          </div>
+          <div class="trend-chart" id="trendChart"></div>
+          <div class="data-table" id="beliefTable"></div>
+        </div>
+        <div class="entry-list" id="entryList"></div>
+        </section>
+      </div>
+
+      <div class="view-panel" id="automationView">
+        <section class="automation-panel" aria-labelledby="automationTitle">
+        <div class="section-head">
+          <h2 id="automationTitle">自动化提醒</h2>
+          <button class="text-button" id="copyAutomation" type="button">复制流程</button>
+        </div>
+        <div class="automation-copy" id="automationPreview"></div>
+        <div class="automation-actions">
+          <a class="text-button" href="shortcuts://create-shortcut">一键创建快捷指令</a>
+          <a class="text-button" href="shortcuts://open-shortcut?name=%E6%98%BE%E5%8C%96Mytri">打开显化Mytri捷径</a>
+          <button class="text-button subtle" id="copyAppLink" type="button">复制 App 链接</button>
+        </div>
+        <p class="formula-note">点击创建后，在快捷指令里按复制的流程添加操作；个人自动化仍需要在 iPhone 上确认启用。</p>
+        </section>
+      </div>
+    </main>
+
+    <dialog id="beliefDialog">
+      <form method="dialog" class="dialog-card">
+        <div class="section-head">
+          <h2>点击相信</h2>
+          <button class="icon-button small" value="cancel" type="submit" aria-label="关闭">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <p class="dialog-text" id="beliefThing"></p>
+        <label>
+          <span>此刻我有百分之多少相信？</span>
+          <input id="beliefValue" type="range" min="0" max="100" step="1" />
+        </label>
+        <p class="formula-note"><span id="beliefValueText">50</span>%</p>
+        <menu>
+          <button class="text-button" value="save" type="submit">确认</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="testDialog">
+      <form method="dialog" class="dialog-card">
+        <div class="section-head">
+          <h2>测试确认</h2>
+          <button class="icon-button small" value="cancel" type="submit" aria-label="关闭">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <p class="dialog-text" id="testThing"></p>
+        <label>
+          <span>想到它时，我的身体有多放松？</span>
+          <input id="testEase" type="range" min="0" max="100" step="1" />
+        </label>
+        <label>
+          <span>我今天有没有看见一点证据？</span>
+          <input id="testEvidence" type="range" min="0" max="100" step="1" />
+        </label>
+        <label>
+          <span>我是否愿意继续稳定选择它？</span>
+          <input id="testChoice" type="range" min="0" max="100" step="1" />
+        </label>
+        <p class="formula-note">测试分 = 三个问题平均值</p>
+        <menu>
+          <button class="text-button" value="save" type="submit">确认</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="worryTestDialog">
+      <form method="dialog" class="dialog-card">
+        <div class="section-head">
+          <h2>测试反面信念</h2>
+          <button class="icon-button small" value="cancel" type="submit" aria-label="关闭">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <p class="dialog-text" id="worryTestText"></p>
+        <p class="formula-note">测试后，如果这句话让担心松动，就 +1；如果没有改变，就 -1。</p>
+        <menu>
+          <button class="text-button subtle" value="unchanged" type="submit">没有改变 -1</button>
+          <button class="text-button" value="changed" type="submit">有改变 +1</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="cancelManifestDialog">
+      <form method="dialog" class="dialog-card">
+        <div class="section-head">
+          <h2>取消目标</h2>
+          <button class="icon-button small" value="cancel" type="submit" aria-label="关闭">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <p class="dialog-text" id="cancelManifestText"></p>
+        <p class="formula-note">你确定要取消掉这个目标吗？确认后这个目标的进度会清零。</p>
+        <menu>
+          <button class="text-button subtle" value="cancel" type="submit">保留</button>
+          <button class="text-button danger" value="confirm" type="submit">确认取消</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
